@@ -31,3 +31,7 @@ sudo /usr/bin/virsh list --all
 
 #Get instack IP
 instack_ip=\`perl -nle 'print "\$2" while (/(ssh root\\@)([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3})/g)' /home/stack/.instack/virt-setup.log \`
+sudo chown stack:stack undercloud_installation.sh
+chmod 755 undercloud_installation.sh
+scp -p -o StrictHostKeyChecking=no undercloud_installation.sh root@\${instack_ip}:/home/stack/
+ssh -o StrictHostKeyChecking=no root@\${instack_ip} "sudo -H -u stack bash -c '/home/stack/undercloud_installation.sh'"
