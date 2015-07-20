@@ -1,7 +1,29 @@
 #!/bin/bash
 
-#This will install RHEL-OSP-Director undercloud and will deploy the overcloud using the docs commands and step by step
+##############################################################################################################################
+# Prerequisites: yum install -y git
+# Usage: ./install_director.sh
+# 
+# Description:
+# This will install RHEL-OSP-Director undercloud and will deploy the overcloud using the docs commands and step by step
+# GitHub: 
+# https://github.com/udis/openstack.git
+##############################################################################################################################
 
+# This will read user input for virtual environment and overcloud customization
+echo "Please Enter Number of Virtual Nodes NOT Including the Instack: "
+read NODE_COUNT
+echo "Please Enter Number of CPU per Node: "
+read NODE_CPU 
+echo "Please Enter Memory Size in MB per Node: "
+read NODE_MEM
+echo "Please Enter Number of Controller Nodes: "
+read ctrlrs
+echo "Please Enter Number of Compute Nodes: "
+read computes
+echo "Please Enter Number of Ceph Nodes: "
+read cephs
+  
 #Create stack user on baremetal
 sudo useradd stack
 echo "Please enter a password for user stack: "
@@ -9,64 +31,30 @@ sudo passwd stack
 echo "stack ALL=(root) NOPASSWD:ALL" | sudo tee -a /etc/sudoers.d/stack
 sudo chmod 0440 /etc/sudoers.d/stack
 
-cat <<EOT >> environment_setup.sh
-#!/bin/bash
-cd ~
-LOG=/home/stack/director-installation_`date +%d-%m-%y`.log
-#Enable repos
-sudo rpm -ivh http://rhos-release.virt.bos.redhat.com/repos/rhos-release/rhos-release-latest.noarch.rpm
-sudo rhos-release 7-director
-sudo yum install -y yum-utils
-sudo yum-config-manager --enable rhelosp-rhel-7-server-opt
-
-#Install instack undercloud
-sudo yum install -y instack-undercloud
-
-#Downloading image for setup your virtual environment - for TLV guys
-IMAGE=http://10.35.7.52/rhel-guest-image/7.1/20150224.0/images/rhel-guest-image-7.1-20150224.0.x86_64.qcow2
-#Downloading image for setup your virtual environment - for all other
-#IMAGE=http://download.devel.redhat.com/brewroot/packages/rhel-guest-image/7.1/20150224.0/images/rhel-guest-image-7.1-20150224.0.x86_64.qcow2
-curl -O \$IMAGE
-export DIB_LOCAL_IMAGE=\`basename \$IMAGE\`
-export DIB_YUM_REPO_CONF="/etc/yum.repos.d/rhos-release-7-director-rhel-7.1.repo /etc/yum.repos.d/rhos-release-7-rhel-7.1.repo"
-
-#Costumize your VMs properties
-export NODE_COUNT=4
-export NODE_CPU=2
-export NODE_MEM=5120
-
-#start bulding your virtual environment
-instack-virt-setup >> \$LOG
-
-#show you VMs
-sudo /usr/bin/virsh list --all
-
-#Get instack IP
-instack_ip=\`grep ssh \$LOG | awk -F"@" '{print $2}'\`
-
-cat <<EOF >> undercloud_installation.sh
-#!/bin/bash
-cd /home/stack/
-sudo rpm -ivh http://rhos-release.virt.bos.redhat.com/repos/rhos-release/rhos-release-latest.noarch.rpm
-sudo rhos-release 7-director
-sudo yum install -y python-rdomanager-oscplugin
-openstack undercloud install
-sudo yum update -y
-exit
-EOF
-
-sudo chown stack:stack undercloud_installation.sh
-chmod 755 undercloud_installation.sh
-scp -p -o StrictHostKeyChecking=no undercloud_installation.sh root@\${instack_ip}:/home/stack/
-ssh -o StrictHostKeyChecking=no root@\${instack_ip} "sudo -H -u stack bash -c '/home/stack/undercloud_installation.sh'"
-exit
-EOT
-
 #change permissions and copy script to stack user
 chown stack:stack environment_setup.sh
 chmod 755 environment_setup.sh
 cp -p environment_setup.sh /home/stack
 
-#run script
+# Start virtual environment creation
+sudo -H -u stack bash -c "cd && ./environment_setup.sh >> /tmp/environment_setup.log"
 
-sudo -H -u stack bash -c "/home/stack/environment_setup.sh"
+while [ -f /tmp/env_setup ]; do
+t=$((t+10))
+sleep 10
+echo -ne "\rInstalling Virtual Environment... $t seconds passed"
+done
+
+# Get instack IP
+instack_ip=`perl -nle 'print "$2" while (/(ssh root\@)([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})/g)' /home/stack/.instack/virt-setup.log`
+
+# Copy and run undercloud installation
+sudo chown stack:stack undercloud_installation.sh
+chmod 755 undercloud_installation.sh
+scp -p -o StrictHostKeyChecking=no undercloud_installation.sh root@${instack_ip}:/home/stack/
+ssh -o StrictHostKeyChecking=no root@${instack_ip} "sudo -H -u stack bash -c 'cd && ./undercloud_installation.sh'"
+
+
+# Copy and run overcloud installation
+
+
