@@ -51,9 +51,8 @@ instack_ip=`perl -nle 'print "$2" while (/(ssh root\@)([0-9]{1,3}\.[0-9]{1,3}\.[
 # Copy and run undercloud installation
 sudo chown stack:stack undercloud_installation.sh
 chmod 755 undercloud_installation.sh
-scp -p -o StrictHostKeyChecking=no undercloud_installation.sh root@${instack_ip}:/home/stack/
-ssh -o StrictHostKeyChecking=no root@${instack_ip} "sudo -H -u stack bash -c 'cd && ./undercloud_installation.sh'"
-
+sudo -H -u stack bash -c "scp -p -o StrictHostKeyChecking=no undercloud_installation.sh root@${instack_ip}:/home/stack/"
+sudo -H -u stack bash -c "ssh -o StrictHostKeyChecking=no root@${instack_ip} 'sudo -H -u stack bash -c \"cd && ./undercloud_installation.sh\"'"
 
 # Copy and run overcloud installation
 
