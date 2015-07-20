@@ -11,18 +11,18 @@
 ##############################################################################################################################
 
 # This will read user input for virtual environment and overcloud customization
-echo "Please Enter Number of Virtual Nodes NOT Including the Instack: "
-read NODE_COUNT
-echo "Please Enter Number of CPU per Node: "
-read NODE_CPU 
-echo "Please Enter Memory Size in MB per Node: "
-read NODE_MEM
-echo "Please Enter Number of Controller Nodes: "
-read ctrlrs
-echo "Please Enter Number of Compute Nodes: "
-read computes
-echo "Please Enter Number of Ceph Nodes: "
-read cephs
+#echo "Please Enter Number of Virtual Nodes NOT Including the Instack: "
+#read NODE_COUNT
+#echo "Please Enter Number of CPU per Node: "
+#read NODE_CPU 
+#echo "Please Enter Memory Size in MB per Node: "
+#read NODE_MEM
+#echo "Please Enter Number of Controller Nodes: "
+#read ctrlrs
+#echo "Please Enter Number of Compute Nodes: "
+#read computes
+#echo "Please Enter Number of Ceph Nodes: "
+#read cephs
   
 #Create stack user on baremetal
 sudo useradd stack
@@ -55,5 +55,9 @@ sudo -H -u stack bash -c "scp -p -o StrictHostKeyChecking=no undercloud_installa
 sudo -H -u stack bash -c "ssh -o StrictHostKeyChecking=no root@${instack_ip} 'sudo -H -u stack bash -c \"cd && ./undercloud_installation.sh\"'"
 
 # Copy and run overcloud installation
-
+basic_deployment.sh
+sudo chown stack:stack basic_deployment.sh
+chmod 755 basic_deployment.sh
+sudo -H -u stack bash -c "scp -p -o StrictHostKeyChecking=no basic_deployment.sh root@${instack_ip}:/home/stack/"
+sudo -H -u stack bash -c "ssh -o StrictHostKeyChecking=no root@${instack_ip} 'sudo -H -u stack bash -c \"cd && ./basic_deployment.sh\"'"
 
